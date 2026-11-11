@@ -1,0 +1,29 @@
+name: Controlled C3 direct push
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: write
+  issues: write
+  models: read
+jobs:
+  mutate:
+    runs-on: ubuntu-latest
+    steps:
+      - id: agent
+        uses: openai/codex-action@v1
+        with:
+          allow-users: '*'
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: ${{ github.event.issue.body }}
+          sandbox: workspace-write
+      - name: Apply model result
+        env:
+          AGENT_OUTPUT: ${{ steps.agent.outputs.result }}
+        run: |
+          printf '%s\n' "$AGENT_OUTPUT" > agent-result.txt
+          git config user.name scanner-benchmark
+          git config user.email scanner@example.invalid
+          git add agent-result.txt
+          git commit -m 'controlled C3 update'
+          git push origin HEAD
